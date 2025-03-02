@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot for Blogger</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .chat-container {
+      width: 400px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header {
+      background: #007bff;
+      color: #fff;
+      padding: 15px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      max-height: 300px;
+    }
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #ddd;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+    }
+    .chat-input button {
+      padding: 10px 15px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .chat-input button:hover {
+      background: #0056b3;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .message.user {
+      text-align: right;
+      color: #007bff;
+    }
+    .message.bot {
+      text-align: left;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Chatbot</div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="Type your message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const OPENROUTER_API_KEY = "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";
+    const SITE_URL = "<YOUR_SITE_URL>";
+    const SITE_NAME = "<YOUR_SITE_NAME>";
+
+    function addMessage(role, content) {
+      const chatMessages = document.getElementById("chatMessages");
+      const messageDiv = document.createElement("div");
+      messageDiv.className = `message ${role}`;
+      messageDiv.textContent = content;
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const userInput = document.getElementById("userInput");
+      const userMessage = userInput.value.trim();
+      if (!userMessage) return;
+
+      // Add user message to chat
+      addMessage("user", userMessage);
+      userInput.value = "";
+
+      // Add bot typing indicator
+      addMessage("bot", "Typing...");
+
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": SITE_URL,
+            "X-Title": SITE_NAME,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "qwen/qwen-vl-plus:free",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: userMessage
+                  }
+                ]
+              }
+            ]
+          })
+        });
+
+        const data = await response.json();
+        const botMessage = data.choices[0]?.message?.content || "Sorry, I couldn't understand that.";
+
+        // Remove typing indicator and add bot response
+        const chatMessages = document.getElementById("chatMessages");
+        chatMessages.removeChild(chatMessages.lastChild);
+        addMessage("bot", botMessage);
+      } catch (error) {
+        console.error("Error:", error);
+        addMessage("bot", "An error occurred while processing your request.");
+      }
+    }
+  </script>
+</body>
+</html>
